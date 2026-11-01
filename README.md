@@ -190,3 +190,5 @@ AutoVision AI is pre-configured for zero-friction cloud deployment. See [DEPLOYM
   * `VITE_API_URL`: `https://your-backend.onrender.com`
 * **SPA Routing:** Handled via `frontend/vercel.json` rewrites.
 
+#   a u t o v i s i o n - a i  
+ 
