@@ -12,7 +12,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { DetectionResult } from '../types';
-import { resolveApiUrl } from '../services/api';
+import { api, resolveApiUrl } from '../services/api';
 
 interface ResultsPageProps {
   result: DetectionResult | null;
@@ -63,7 +63,7 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({
         <div className="flex items-center gap-2.5">
           {/* Download Video */}
           <a
-            href={resolveApiUrl(`/api/download/video/${result.session_id}`)}
+            href={api.getVideoDownloadUrl(result.session_id)}
             download
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 transition-all"
           >
@@ -73,7 +73,7 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({
 
           {/* Download CSV */}
           <a
-            href={resolveApiUrl(`/api/download/csv/${result.session_id}`)}
+            href={api.getCsvDownloadUrl(result.session_id)}
             download
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs transition-all"
           >
@@ -86,7 +86,7 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({
       {/* Video Player */}
       <div className="rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 aspect-video shadow-2xl">
         <video
-          src={resolveApiUrl(result.video_url)}
+          src={api.getVideoDownloadUrl(result.session_id)}
           controls
           autoPlay
           className="w-full h-full object-contain"

@@ -39,9 +39,8 @@ export function App() {
     try {
       const res = await api.getResults(sessionId);
       setLatestResult(res);
-      setCurrentPage('results');
     } catch (err) {
-      console.error(err);
+      console.error('Failed to fetch completed results:', err);
     }
   };
 

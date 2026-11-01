@@ -8,7 +8,9 @@ import {
   RefreshCw,
   Sliders,
   ArrowRight,
-  Eye
+  Eye,
+  Download,
+  FileSpreadsheet
 } from 'lucide-react';
 import { api } from '../services/api';
 import { DetectionResult } from '../types';
@@ -22,31 +24,36 @@ export const DetectionPage: React.FC<DetectionPageProps> = ({
   onDetectionComplete,
   onNavigateToResults,
 }) => {
+  // Input Selection State
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [originalVideoUrl, setOriginalVideoUrl] = useState<string | null>(null);
   const [uploadedPath, setUploadedPath] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState<boolean>(false);
+  const [uploadLoading, setUploadLoading] = useState<boolean>(false);
+
+  // Sample Benchmark State
   const [useSample, setUseSample] = useState<boolean>(true);
-  const [sampleInfo, setSampleInfo] = useState<{ filename: string; size_mb: number } | null>(null);
+  const [sampleInfo, setSampleInfo] = useState<{ filename: string; size_mb: number; description?: string } | null>(null);
 
   // Settings
   const [confThreshold, setConfThreshold] = useState<number>(0.30);
 
-  // Execution state
+  // Processing & Telemetry State
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [status, setStatus] = useState<DetectionResult | null>(null);
-  const [uploadLoading, setUploadLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Load Benchmark Video metadata on mount
   useEffect(() => {
     api.getSampleVideo()
-      .then(info => setSampleInfo({ filename: info.filename, size_mb: info.size_mb }))
+      .then(info => setSampleInfo({ filename: info.filename, size_mb: info.size_mb, description: info.description }))
       .catch(() => setSampleInfo(null));
   }, []);
 
-  // Poll progress when processing
+  // Poll detection progress every 750ms while running
   useEffect(() => {
     let interval: any = null;
     if (isProcessing && currentSessionId) {
@@ -54,65 +61,112 @@ export const DetectionPage: React.FC<DetectionPageProps> = ({
         try {
           const res = await api.getStatus(currentSessionId);
           setStatus(res);
+
           if (res.status === 'completed') {
             setIsProcessing(false);
+            // Fetch final verified results from /api/results/{session_id}
+            try {
+              const fullResult = await api.getResults(currentSessionId);
+              setStatus(fullResult);
+            } catch {
+              // Fallback to latest status payload if results call has delay
+            }
             onDetectionComplete(currentSessionId);
           } else if (res.status === 'failed') {
             setIsProcessing(false);
-            setErrorMessage(res.error || 'Video processing encountered an error.');
+            setErrorMessage(res.error || 'Video detection pipeline encountered an error.');
           }
-        } catch (err) {
-          // ignore transient poll errors
+        } catch (err: any) {
+          // Keep polling through transient network hiccups
         }
       }, 750);
     }
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isProcessing, currentSessionId]);
+  }, [isProcessing, currentSessionId, onDetectionComplete]);
 
+  // Handle Video File Upload
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Validate extension
+    const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+    const allowed = ['.mp4', '.avi', '.mov', '.mkv'];
+    if (!allowed.includes(ext)) {
+      setErrorMessage(`Invalid format '${ext}'. Please choose an MP4, AVI, or MOV file.`);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
     setSelectedFile(file);
     setUseSample(false);
+    setUploadedPath(null);
+    setUploadSuccess(false);
     setUploadLoading(true);
     setErrorMessage(null);
 
-    // Create local object URL for previewing original video
+    // Instant local preview
     const objectUrl = URL.createObjectURL(file);
     setOriginalVideoUrl(objectUrl);
 
     try {
+      // POST /api/upload with FormData field 'file'
       const res = await api.uploadVideo(file);
-      setUploadedPath(res.video_path);
+      if (res && res.video_path) {
+        setUploadedPath(res.video_path);
+        setUploadSuccess(true);
+      } else {
+        throw new Error('Upload succeeded but server did not return video_path.');
+      }
     } catch (err: any) {
-      setErrorMessage(err.message || 'Video upload failed.');
-      setSelectedFile(null);
-      setOriginalVideoUrl(null);
+      setErrorMessage(err.message || 'Video upload failed. Please verify backend connection.');
+      setUploadedPath(null);
+      setUploadSuccess(false);
     } finally {
       setUploadLoading(false);
     }
   };
 
+  // Start Detection Workflow
   const handleStartDetection = async () => {
     setErrorMessage(null);
+
+    if (!useSample && !uploadedPath) {
+      setErrorMessage('Please wait for the video to finish uploading before starting detection.');
+      return;
+    }
+
     setIsProcessing(true);
     setStatus(null);
 
+    // Prepare contract payload
+    const payload = useSample
+      ? {
+          use_sample: true,
+          conf_threshold: confThreshold,
+        }
+      : {
+          video_path: uploadedPath!,
+          use_sample: false,
+          conf_threshold: confThreshold,
+        };
+
     try {
-      const res = await api.startDetection({
-        video_path: uploadedPath || undefined,
-        use_sample: useSample,
-        conf_threshold: confThreshold,
-      });
+      const res = await api.startDetection(payload);
+      if (!res.session_id) {
+        throw new Error('Detection server did not return a session_id.');
+      }
       setCurrentSessionId(res.session_id);
     } catch (err: any) {
       setErrorMessage(err.message || 'Failed to start detection pipeline.');
       setIsProcessing(false);
     }
   };
+
+  // Condition: Enable Start Detection ONLY after successful upload (or if benchmark sample is selected)
+  const isStartDisabled = isProcessing || uploadLoading || (!useSample && (!uploadedPath || !uploadSuccess));
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -150,6 +204,8 @@ export const DetectionPage: React.FC<DetectionPageProps> = ({
               setSelectedFile(null);
               setOriginalVideoUrl(null);
               setUploadedPath(null);
+              setUploadSuccess(false);
+              setErrorMessage(null);
             }}
             className={`p-4 rounded-xl border text-xs cursor-pointer transition-all ${
               useSample
@@ -166,7 +222,7 @@ export const DetectionPage: React.FC<DetectionPageProps> = ({
               )}
             </div>
             <div className="text-[11px] text-slate-400">
-              input_video.mp4 {sampleInfo ? `(${sampleInfo.size_mb} MB)` : ''}
+              input_video.mp4 {sampleInfo ? `(${sampleInfo.size_mb} MB)` : '(Sample Video)'}
             </div>
             <div className="text-[10px] text-slate-500 mt-1">
               Ready-to-run highway traffic video with cars, buses, and trucks.
@@ -175,9 +231,11 @@ export const DetectionPage: React.FC<DetectionPageProps> = ({
 
           {/* Upload Box */}
           <div
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => !uploadLoading && fileInputRef.current?.click()}
             className={`p-6 rounded-xl border-2 border-dashed text-center text-xs cursor-pointer transition-all ${
-              !useSample && selectedFile
+              !useSample && uploadSuccess
+                ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-200'
+                : !useSample && selectedFile
                 ? 'bg-blue-500/10 border-blue-500/50 text-blue-200'
                 : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700'
             }`}
@@ -185,21 +243,35 @@ export const DetectionPage: React.FC<DetectionPageProps> = ({
             <input
               ref={fileInputRef}
               type="file"
-              accept=".mp4,.avi,.mov"
+              accept=".mp4,.avi,.mov,.mkv"
               onChange={handleFileUpload}
               className="hidden"
             />
             <Upload className="w-8 h-8 mx-auto mb-2 text-slate-500" />
+            
             {uploadLoading ? (
               <div className="text-cyan-400 font-semibold flex items-center justify-center gap-2">
                 <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                Uploading File...
+                <span>Uploading Video to Server...</span>
               </div>
-            ) : selectedFile ? (
+            ) : !useSample && uploadSuccess && selectedFile ? (
+              <div className="space-y-1">
+                <div className="flex items-center justify-center gap-1.5 text-emerald-400 font-semibold">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Upload Ready for Detection</span>
+                </div>
+                <div className="text-slate-200 font-mono text-[11px] truncate max-w-xs mx-auto">
+                  {selectedFile.name}
+                </div>
+                <div className="text-[10px] text-slate-400">
+                  {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB • Path saved in state
+                </div>
+              </div>
+            ) : !useSample && selectedFile ? (
               <div>
                 <div className="font-semibold text-slate-200">{selectedFile.name}</div>
                 <div className="text-[10px] text-slate-400 mt-0.5">
-                  {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB • Ready
+                  {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
                 </div>
               </div>
             ) : (
@@ -253,11 +325,34 @@ export const DetectionPage: React.FC<DetectionPageProps> = ({
           <div className="pt-2">
             <button
               onClick={handleStartDetection}
-              disabled={isProcessing || uploadLoading}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/25 transition-all cursor-pointer disabled:opacity-50"
+              disabled={isStartDisabled}
+              className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs shadow-lg transition-all ${
+                isStartDisabled
+                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
+                  : 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 cursor-pointer shadow-cyan-500/25'
+              }`}
             >
-              <Play className="w-4 h-4 fill-current" />
-              <span>{isProcessing ? 'Processing Video...' : 'Start Detection'}</span>
+              {isProcessing ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin text-cyan-400" />
+                  <span>Processing Video with YOLOv8...</span>
+                </>
+              ) : uploadLoading ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin text-cyan-400" />
+                  <span>Uploading Video...</span>
+                </>
+              ) : !useSample && (!uploadedPath || !uploadSuccess) ? (
+                <>
+                  <Upload className="w-4 h-4" />
+                  <span>Upload Video to Start Detection</span>
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4 fill-current" />
+                  <span>Start Detection</span>
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -272,7 +367,11 @@ export const DetectionPage: React.FC<DetectionPageProps> = ({
                 Session ID: {status?.session_id || currentSessionId}
               </div>
               <div className="text-sm font-bold text-white mt-0.5">
-                {status?.status === 'completed' ? 'Analysis Complete' : 'Processing Frames with YOLOv8...'}
+                {status?.status === 'completed'
+                  ? 'Analysis Complete'
+                  : isProcessing
+                  ? 'Processing Frames with YOLOv8...'
+                  : 'Session Ready'}
               </div>
             </div>
 
@@ -358,13 +457,41 @@ export const DetectionPage: React.FC<DetectionPageProps> = ({
 
         {/* Processed Video Preview */}
         <div className="space-y-2">
-          <div className="flex items-center gap-2 text-xs font-bold text-slate-300 uppercase tracking-wider">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Annotated Output Preview</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs font-bold text-slate-300 uppercase tracking-wider">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Annotated Output Preview</span>
+            </div>
+            {status?.status === 'completed' && (status.session_id || currentSessionId) && (
+              <div className="flex items-center gap-2">
+                <a
+                  href={api.getVideoDownloadUrl(status.session_id || currentSessionId!)}
+                  download
+                  className="flex items-center gap-1 text-[11px] text-cyan-400 hover:text-cyan-300 transition-colors"
+                >
+                  <Download className="w-3 h-3" />
+                  <span>Download Video</span>
+                </a>
+                <span className="text-slate-600">•</span>
+                <a
+                  href={api.getCsvDownloadUrl(status.session_id || currentSessionId!)}
+                  download
+                  className="flex items-center gap-1 text-[11px] text-purple-400 hover:text-purple-300 transition-colors"
+                >
+                  <FileSpreadsheet className="w-3 h-3" />
+                  <span>Download CSV</span>
+                </a>
+              </div>
+            )}
           </div>
           <div className="rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 aspect-video flex items-center justify-center shadow-lg">
-            {status?.status === 'completed' && status.video_url ? (
-              <video src={api.resolveUrl(status.video_url)} controls className="w-full h-full object-contain" />
+            {status?.status === 'completed' && (status.session_id || currentSessionId) ? (
+              <video
+                src={api.getVideoDownloadUrl(status.session_id || currentSessionId!)}
+                controls
+                autoPlay
+                className="w-full h-full object-contain"
+              />
             ) : (
               <div className="text-xs text-slate-500 text-center p-6">
                 Processed video with bounding boxes will render here after detection completes.
