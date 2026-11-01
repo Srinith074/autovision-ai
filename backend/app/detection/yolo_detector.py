@@ -7,7 +7,7 @@ import torch
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from ultralytics import YOLO
-from backend.app.core.config import SUPPORTED_CLASSES, MODELS_DIR
+from app.core.config import SUPPORTED_CLASSES, MODELS_DIR
 
 # Reverse lookup: name -> class_id
 CLASS_NAME_TO_ID = {name: cid for cid, name in SUPPORTED_CLASSES.items()}

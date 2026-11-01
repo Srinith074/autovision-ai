@@ -14,12 +14,12 @@ from pathlib import Path
 from typing import Dict, Any, Optional, Callable
 import numpy as np
 
-from backend.app.core.config import (
+from app.core.config import (
     VIDEOS_DIR, SNAPSHOTS_DIR, REPORTS_DIR, BASE_DIR
 )
-from backend.app.detection.yolo_detector import YOLODetector
-from backend.app.tracking.tracker import TrafficTracker
-from backend.app.database.database import (
+from app.detection.yolo_detector import YOLODetector
+from app.tracking.tracker import TrafficTracker
+from app.database.database import (
     create_session, update_session, insert_vehicle_event, insert_detection_records_batch
 )
 

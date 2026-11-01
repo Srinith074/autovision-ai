@@ -7,7 +7,7 @@ import json
 import os
 from datetime import datetime
 from typing import Dict, Any, List, Optional
-from backend.app.core.config import DATABASE_PATH
+from app.core.config import DATABASE_PATH
 
 def get_db():
     conn = sqlite3.connect(DATABASE_PATH, timeout=30.0)

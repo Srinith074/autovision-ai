@@ -1,0 +1,1 @@
+"""AutoVision AI - Detection Package"""

@@ -11,6 +11,7 @@ import threading
 from pathlib import Path
 from typing import Dict, Any, Optional
 
+import sys
 import torch
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,9 +19,27 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from backend.app.detection.pipeline import DetectionPipeline
+# Ensure backend directory is in sys.path so 'app' is always resolvable
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+from app.detection.pipeline import DetectionPipeline
+
+# Dynamically resolve project root directory
+FILE_PARENT3 = Path(__file__).resolve().parent.parent.parent
+FILE_PARENT2 = Path(__file__).resolve().parent.parent
+CWD = Path.cwd().resolve()
+
+if (FILE_PARENT3 / "input_video.mp4").exists():
+    BASE_DIR = FILE_PARENT3
+elif (FILE_PARENT2 / "input_video.mp4").exists():
+    BASE_DIR = FILE_PARENT2
+elif (CWD / "input_video.mp4").exists():
+    BASE_DIR = CWD
+else:
+    BASE_DIR = FILE_PARENT3
+
 UPLOADS_DIR = BASE_DIR / "uploads"
 OUTPUTS_DIR = BASE_DIR / "outputs" / "videos"
 REPORTS_DIR = BASE_DIR / "reports"
@@ -332,4 +351,4 @@ def download_video(session_id: str):
 if __name__ == "__main__":
     import uvicorn
     print(f"[AutoVision AI] Starting server on {HOST}:{PORT}")
-    uvicorn.run("backend.app.main:app", host=HOST, port=PORT, reload=False)
+    uvicorn.run("app.main:app", host=HOST, port=PORT, reload=False)

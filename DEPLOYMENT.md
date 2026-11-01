@@ -44,14 +44,14 @@ The repository contains a `render.yaml` file in the root directory.
    * **Language/Runtime:** `Python 3`
    * **Region:** Any (e.g. `Oregon (US West)` or `Frankfurt (EU)`)
    * **Branch:** `main` (or your active branch)
-   * **Root Directory:** *(leave blank / repository root)*
+   * **Root Directory:** `backend` (or leave blank if repository root)
    * **Build Command:**
      ```bash
-     pip install -r backend/requirements.txt
+     pip install -r requirements.txt
      ```
    * **Start Command:**
      ```bash
-     uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
+     uvicorn app.main:app --host 0.0.0.0 --port $PORT
      ```
    * **Health Check Path:** `/api/health`
 
@@ -129,7 +129,8 @@ npm run build
 
 ### 2. Test Backend Health & Endpoints:
 ```bash
-python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
+cd backend
+uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 In a separate terminal:
 ```bash

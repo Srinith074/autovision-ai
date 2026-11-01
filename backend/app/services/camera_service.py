@@ -7,9 +7,9 @@ import time
 import threading
 import numpy as np
 from typing import Dict, Any, Optional, Generator
-from backend.app.core.config import BASE_DIR
-from backend.app.detection.yolo_detector import YOLODetector
-from backend.app.tracking.tracker import TrafficTracker
+from app.core.config import BASE_DIR
+from app.detection.yolo_detector import YOLODetector
+from app.tracking.tracker import TrafficTracker
 
 class CameraStreamManager:
     _instance = None

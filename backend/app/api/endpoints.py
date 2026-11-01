@@ -10,18 +10,18 @@ from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks,
 from fastapi.responses import StreamingResponse, FileResponse
 import torch
 
-from backend.app.core.config import (
+from app.core.config import (
     UPLOADS_DIR, REPORTS_DIR, BASE_DIR, settings
 )
-from backend.app.schemas.schemas import (
+from app.schemas.schemas import (
     StartDetectionRequest, CameraConfigRequest
 )
-from backend.app.database.database import (
+from app.database.database import (
     list_sessions, get_session, delete_session,
     get_session_events, get_analytics_overview
 )
-from backend.app.services.video_service import VideoProcessingService
-from backend.app.services.camera_service import CameraStreamManager
+from app.services.video_service import VideoProcessingService
+from app.services.camera_service import CameraStreamManager
 
 router = APIRouter(prefix="/api")
 

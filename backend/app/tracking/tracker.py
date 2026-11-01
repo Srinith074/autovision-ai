@@ -6,7 +6,7 @@ calibrated speed physics, lane localization, and visual annotations.
 import cv2
 import numpy as np
 from typing import Dict, List, Tuple, Optional, Any
-from backend.app.core.config import CLASS_COLORS
+from app.core.config import CLASS_COLORS
 
 class VehicleTrajectory:
     def __init__(self, track_id: int, vehicle_class: str, initial_bbox: List[float], frame_idx: int, timestamp: float):

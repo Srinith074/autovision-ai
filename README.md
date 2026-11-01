@@ -172,8 +172,9 @@ Run the end-to-end automated academic workflow verification script:
 AutoVision AI is pre-configured for zero-friction cloud deployment. See [DEPLOYMENT.md](file:///c:/Users/titoo/OneDrive/Documents/projects/vehicle_counting_tensorflow-master/DEPLOYMENT.md) for full details.
 
 ### Render Backend (FastAPI Web Service)
-* **Build Command:** `pip install -r backend/requirements.txt`
-* **Start Command:** `uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT`
+* **Root Directory:** `backend` (or leave blank if repository root)
+* **Build Command:** `pip install -r requirements.txt` (or `pip install -r backend/requirements.txt`)
+* **Start Command:** `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 * **Health Check Path:** `/api/health`
 * **Environment Variables:**
   * `PORT`: Automatically assigned by Render (default 10000)
@@ -189,7 +190,3 @@ AutoVision AI is pre-configured for zero-friction cloud deployment. See [DEPLOYM
 * **Environment Variable:**
   * `VITE_API_URL`: `https://your-backend.onrender.com`
 * **SPA Routing:** Handled via `frontend/vercel.json` rewrites.
-
-#   a u t o v i s i o n - a i  
- #   a u t o v i s i o n - a i  
- 

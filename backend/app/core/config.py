@@ -5,7 +5,19 @@ import os
 from pathlib import Path
 from pydantic import BaseModel
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+FILE_PARENT4 = Path(__file__).resolve().parent.parent.parent.parent
+FILE_PARENT3 = Path(__file__).resolve().parent.parent.parent
+CWD = Path.cwd().resolve()
+
+if (FILE_PARENT4 / "input_video.mp4").exists():
+    BASE_DIR = FILE_PARENT4
+elif (FILE_PARENT3 / "input_video.mp4").exists():
+    BASE_DIR = FILE_PARENT3
+elif (CWD / "input_video.mp4").exists():
+    BASE_DIR = CWD
+else:
+    BASE_DIR = FILE_PARENT4
+
 UPLOADS_DIR = BASE_DIR / "uploads"
 OUTPUTS_DIR = BASE_DIR / "outputs"
 VIDEOS_DIR = OUTPUTS_DIR / "videos"
