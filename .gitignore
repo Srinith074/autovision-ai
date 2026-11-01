@@ -1,0 +1,96 @@
+# ==========================================
+# AutoVision AI - Git Ignore Specification
+# ==========================================
+
+# Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+.env
+.env.*
+!.env.example
+
+# Python Caches & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+*.manifest
+*.spec
+
+# Deep Learning Models & Heavy Weights (Render auto-downloads or uses MODEL_PATH)
+*.pt
+*.pth
+*.pb
+*.onnx
+*.weights
+*.tar.gz
+models/*.pt
+models/*.pb
+models/*.onnx
+models/*.tar.gz
+yolov8n.pt
+
+# User Uploads, Processed Media & Generated Reports (Ephemeral Runtime Data)
+uploads/*
+!uploads/.gitkeep
+outputs/*
+!outputs/.gitkeep
+outputs/videos/*
+reports/*
+!reports/.gitkeep
+
+# Exclude temporary and generated video / data files
+*.avi
+*.mov
+*.mkv
+# Keep benchmark input sample video for live evaluations
+!input_video.mp4
+
+# Databases & Local Storage
+*.sqlite
+*.sqlite3
+*.db
+
+# Frontend Dependencies & Production Build Outputs
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.turbo/
+.cache/
+.parcel-cache/
+
+# Testing & Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.coverage
+htmlcov/
+.mypy_cache/
+.pytest_cache/
+
+# OS and Editor metadata
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo

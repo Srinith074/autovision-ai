@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: autovision-ai-backend
+    runtime: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: MAX_UPLOAD_SIZE_MB
+        value: 250
+      - key: MODEL_PATH
+        value: yolov8n.pt
+      - key: ALLOWED_ORIGINS
+        sync: false
